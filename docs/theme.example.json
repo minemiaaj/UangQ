@@ -1,0 +1,17 @@
+{
+  "logo": "https://GANTI-REF.supabase.co/storage/v1/object/public/theme/logo-baru.svg",
+  "presets": [
+    {
+      "id": "ramadan",
+      "name": "Ramadan",
+      "mode": "dark",
+      "background": "https://GANTI-REF.supabase.co/storage/v1/object/public/theme/bg-ramadan.jpg",
+      "particles": "spark",
+      "colors": {
+        "bg": "#0b1020", "text": "#fff8e6", "dim": "#c9b98f",
+        "accent": "#f6c453", "accentB": "#34d399", "accent2": "#fde68a",
+        "income": "#4ade80", "expense": "#fb7185"
+      }
+    }
+  ]
+}

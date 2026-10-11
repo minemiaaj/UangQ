@@ -2,61 +2,313 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https://*.supabase.co; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Catatan Keuangan</title>
+<title>UangQ</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main id="auth" class="card narrow">
-  <h1>💰 Catatan Keuangan</h1>
-  <p class="muted">Masuk agar data sinkron di Android &amp; Windows.</p>
-  <input id="email" type="email" placeholder="Email" autocomplete="username">
-  <input id="password" type="password" placeholder="Password (min. 6 karakter)" autocomplete="current-password">
-  <div class="row">
-    <button id="btnLogin">Masuk</button>
-    <button id="btnSignup" class="ghost">Daftar</button>
+
+<!-- Latar dinamis -->
+<div id="scene" aria-hidden="true">
+  <div class="bg-img"></div>
+  <div class="aurora"><i></i><i></i><i></i></div>
+  <canvas id="fx"></canvas>
+  <div class="scrim"></div>
+</div>
+
+<!-- Ikon (sprite) -->
+<svg width="0" height="0" class="sprite" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 4H5v16h4"/><path d="M16 8l4 4-4 4M20 12H9"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18"/><circle cx="16.5" cy="15" r="1"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 7h12l-3-3M17 17H5l3 3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></symbol>
+</svg>
+
+<!-- 1. Masuk dengan Google -->
+<main id="screen-auth" class="screen card narrow">
+  <h1 class="brand-h"><img data-logo class="logo" src="theme/logo.svg" alt="" width="40" height="40"> UangQ</h1>
+  <p class="dim">Masuk dengan akun Google agar data sinkron di Android &amp; Windows.</p>
+  <button id="btnGoogle" class="google"><b>G</b> Masuk dengan Google</button>
+  <p id="authMsg" class="msg"></p>
+</main>
+
+<!-- 2. Aktifkan verifikasi 2 langkah (wajib, sekali saja) -->
+<main id="screen-mfaEnroll" class="screen card narrow" hidden>
+  <h1>🔐 Verifikasi 2 Langkah</h1>
+  <p class="dim">Wajib demi keamanan data keuangan. Pasang aplikasi autentikator (Google Authenticator, Authy, dll.), pindai QR ini, lalu masukkan kode 6 digit.</p>
+  <img id="qr" class="qr" alt="QR autentikator" width="200" height="200">
+  <p class="dim">Atau ketik kunci manual (simpan sebagai cadangan di tempat aman):</p>
+  <code id="secret"></code>
+  <input id="enrollCode" inputmode="numeric" maxlength="6" placeholder="Kode 6 digit" autocomplete="one-time-code">
+  <button id="btnEnroll">Aktifkan</button>
+  <p id="enrollMsg" class="msg"></p>
+  <button class="ghost btnOut">Keluar</button>
+</main>
+
+<!-- 3. Kode verifikasi 2 langkah -->
+<main id="screen-mfaChallenge" class="screen card narrow" hidden>
+  <h1>🔐 Masukkan Kode</h1>
+  <p class="dim">Buka aplikasi autentikator dan masukkan kode 6 digit.</p>
+  <input id="mfaCode" inputmode="numeric" maxlength="6" placeholder="Kode 6 digit" autocomplete="one-time-code">
+  <button id="btnMfa">Verifikasi</button>
+  <p id="mfaMsg" class="msg"></p>
+  <button class="ghost btnOut">Keluar</button>
+</main>
+
+<!-- 4. Buat PIN perangkat -->
+<main id="screen-pinSetup" class="screen card narrow" hidden>
+  <h1>🔒 Buat PIN</h1>
+  <p class="dim">PIN 6 digit untuk membuka aplikasi di perangkat ini. Aplikasi terkunci otomatis saat tidak dipakai.</p>
+  <input id="pin1" type="password" inputmode="numeric" maxlength="6" placeholder="PIN 6 digit" autocomplete="off">
+  <input id="pin2" type="password" inputmode="numeric" maxlength="6" placeholder="Ulangi PIN" autocomplete="off">
+  <button id="btnPinSet">Simpan PIN</button>
+  <p id="pinSetMsg" class="msg"></p>
+</main>
+
+<!-- 5. Buka kunci -->
+<main id="screen-pinUnlock" class="screen card narrow" hidden>
+  <h1>🔒 Terkunci</h1>
+  <input id="pinIn" type="password" inputmode="numeric" maxlength="6" placeholder="PIN" autocomplete="off">
+  <button id="btnUnlock">Buka</button>
+  <p id="unlockMsg" class="msg"></p>
+  <button id="btnForgot" class="ghost">Lupa PIN / ganti akun</button>
+</main>
+
+<!-- 6. Aplikasi -->
+<div id="screen-app" class="screen" hidden>
+  <div id="shell">
+    <nav id="nav" aria-label="Navigasi utama">
+      <div class="brand"><img data-logo class="logo" src="theme/logo.svg" alt="" width="34" height="34"> UangQ</div>
+      <button class="navbtn active" data-tab="home"><svg class="i"><use href="#i-home"/></svg><span>Beranda</span></button>
+      <button class="navbtn" data-tab="tx"><svg class="i"><use href="#i-list"/></svg><span>Transaksi</span></button>
+      <button class="navbtn" data-tab="acc"><svg class="i"><use href="#i-wallet"/></svg><span>Rekening</span></button>
+      <button class="navbtn" data-tab="settings"><svg class="i"><use href="#i-sliders"/></svg><span>Pengaturan</span></button>
+    </nav>
+
+    <main id="content">
+      <header id="topbar">
+        <div>
+          <small class="dim">UangQ</small>
+          <h1 id="greet">Halo</h1>
+        </div>
+      </header>
+
+      <div id="monthbar">
+        <button id="prevMonth" class="iconbtn" aria-label="Bulan sebelumnya"><svg class="i"><use href="#i-left"/></svg></button>
+        <strong id="monthLabel"></strong>
+        <button id="nextMonth" class="iconbtn" aria-label="Bulan berikutnya"><svg class="i"><use href="#i-right"/></svg></button>
+      </div>
+
+      <!-- Beranda -->
+      <section id="tab-home" class="tab">
+        <div class="card hero tilt">
+          <small class="dim">Saldo bulan ini</small>
+          <div id="balance" class="balance">Rp0</div>
+          <p id="saveRate" class="dim"></p>
+          <svg id="spark" class="spark" viewBox="0 0 300 80" preserveAspectRatio="none" aria-label="Grafik saldo harian"></svg>
+          <div class="pills">
+            <div class="pill"><small class="dim">Pemasukan</small><b id="sumIn" class="income">Rp0</b></div>
+            <div class="pill"><small class="dim">Pengeluaran</small><b id="sumOut" class="expense">Rp0</b></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Pengeluaran terbesar</h3>
+          <div id="catList"></div>
+        </div>
+
+        <div class="card">
+          <div class="row between"><h3>Terbaru</h3><button id="linkAll" class="link">Lihat semua</button></div>
+          <ul id="recentList" class="txlist"></ul>
+        </div>
+      </section>
+
+      <!-- Transaksi -->
+      <section id="tab-tx" class="tab" hidden>
+        <div class="card">
+          <div id="filterSeg" class="seg-group">
+            <button class="seg on" data-f="all">Semua</button>
+            <button class="seg" data-f="income">Masuk</button>
+            <button class="seg" data-f="expense">Keluar</button>
+          </div>
+          <input id="txSearch" type="search" maxlength="60" placeholder="Cari kategori atau catatan">
+          <ul id="txList" class="txlist"></ul>
+        </div>
+      </section>
+
+      <!-- Rekening -->
+      <section id="tab-acc" class="tab" hidden>
+        <div class="card hero">
+          <small class="dim">Total saldo semua rekening</small>
+          <div id="accTotal" class="balance">Rp0</div>
+          <div class="row">
+            <button id="btnAccAdd">+ Rekening</button>
+            <button id="btnTransfer" class="ghost"><svg class="i"><use href="#i-swap"/></svg> Transfer</button>
+            <button id="btnCsv" class="ghost"><svg class="i"><use href="#i-upload"/></svg> Impor CSV</button>
+          </div>
+        </div>
+        <div id="accList"></div>
+        <div class="card"><h3>Transfer terakhir</h3><ul id="trList" class="txlist"></ul></div>
+        <p class="dim small">Saldo = saldo awal + transaksi + transfer yang Anda catat. Nomor rekening lengkap tidak disimpan.</p>
+      </section>
+
+      <!-- Pengaturan -->
+      <section id="tab-settings" class="tab" hidden>
+        <div class="card">
+          <h3>Akun</h3>
+          <p class="dim" id="setEmail"></p>
+          <div class="row">
+            <button id="btnLock" class="ghost"><svg class="i"><use href="#i-lock"/></svg> Kunci sekarang</button>
+            <button id="btnChangePin" class="ghost">Ganti PIN</button>
+            <button class="ghost btnOut"><svg class="i"><use href="#i-logout"/></svg> Keluar</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Tampilan</h3>
+          <small class="dim">Tema</small>
+          <div id="presetList" class="presets"></div>
+          <small class="dim">Gambar latar</small>
+          <div class="row">
+            <button id="btnBgPick" class="ghost">Pilih gambar sendiri…</button>
+            <button id="btnBgReset" class="ghost">Pakai bawaan tema</button>
+          </div>
+          <input id="bgFile" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+          <p></p>
+          <small class="dim">Animasi</small>
+          <div id="fxSeg" class="seg-group">
+            <button class="seg" data-m="full">Penuh</button>
+            <button class="seg" data-m="lite">Hemat</button>
+            <button class="seg" data-m="off">Mati</button>
+          </div>
+          <label class="switch"><input id="fxTouch" type="checkbox"><span>Efek sentuhan</span></label>
+          <div class="row"><button id="btnThemeRefresh" class="ghost">Perbarui tema dari server</button></div>
+          <p id="themeMsg" class="msg"></p>
+        </div>
+      </section>
+    </main>
   </div>
-  <p id="authMsg" class="muted"></p>
-</main>
 
-<main id="app" hidden>
-  <header class="row between">
-    <h1>💰 Catatan Keuangan</h1>
-    <div class="row"><small id="who" class="muted"></small><button id="btnLogout" class="ghost">Keluar</button></div>
-  </header>
+  <button id="fab" class="fab" aria-label="Tambah transaksi"><svg class="i"><use href="#i-plus"/></svg></button>
 
-  <section class="row">
-    <label>Bulan <input id="month" type="month"></label>
-  </section>
-
-  <section class="grid">
-    <div class="card"><small>Pemasukan</small><h2 id="sumIn" class="income">Rp0</h2></div>
-    <div class="card"><small>Pengeluaran</small><h2 id="sumOut" class="expense">Rp0</h2></div>
-    <div class="card"><small>Saldo</small><h2 id="sumBal">Rp0</h2></div>
-  </section>
-
-  <section class="card">
-    <h3>Tambah transaksi</h3>
-    <div class="grid form">
-      <select id="type"><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option></select>
-      <input id="amount" type="number" min="0" step="any" placeholder="Jumlah (Rp)" inputmode="decimal">
-      <input id="category" list="cats" placeholder="Kategori">
-      <datalist id="cats"><option>Makan</option><option>Transport</option><option>Belanja</option><option>Tagihan</option><option>Gaji</option><option>Lainnya</option></datalist>
-      <input id="date" type="date">
-      <input id="note" placeholder="Catatan (opsional)">
-      <button id="btnAdd">Tambah</button>
+  <!-- Lembar tambah transaksi -->
+  <div id="sheet" class="sheet" hidden role="dialog" aria-modal="true" aria-label="Tambah transaksi">
+    <div id="sheetBackdrop" class="backdrop"></div>
+    <div class="sheet-panel card">
+      <div class="row between">
+        <h3>Tambah transaksi</h3>
+        <button id="btnCloseSheet" class="iconbtn" aria-label="Tutup"><svg class="i"><use href="#i-x"/></svg></button>
+      </div>
+      <div id="typeSeg" class="seg-group">
+        <button class="seg on" data-type="expense">Pengeluaran</button>
+        <button class="seg" data-type="income">Pemasukan</button>
+      </div>
+      <input id="amount" class="big" type="number" min="0" step="any" placeholder="0" inputmode="decimal" aria-label="Jumlah (Rp)">
+      <div id="catChips" class="chips"></div>
+      <input id="category" list="cats" maxlength="60" placeholder="Kategori">
+      <datalist id="cats"></datalist>
+      <select id="txAccount" aria-label="Rekening"></select>
+      <div class="two">
+        <input id="date" type="date" aria-label="Tanggal">
+        <input id="note" maxlength="300" placeholder="Catatan (opsional)">
+      </div>
+      <button id="btnAdd">Simpan</button>
+      <p id="msg" class="msg"></p>
     </div>
-    <p id="msg" class="muted"></p>
-  </section>
+  </div>
 
-  <section class="card">
-    <h3>Riwayat</h3>
-    <ul id="list"></ul>
-  </section>
-</main>
+  <!-- Tambah rekening -->
+  <div id="accSheet" class="sheet" hidden role="dialog" aria-modal="true" aria-label="Tambah rekening">
+    <div class="backdrop" data-close="accSheet"></div>
+    <div class="sheet-panel card">
+      <div class="row between"><h3>Tambah rekening</h3><button class="iconbtn" data-close="accSheet" aria-label="Tutup"><svg class="i"><use href="#i-x"/></svg></button></div>
+      <div id="accKind" class="seg-group">
+        <button class="seg on" data-k="bank">Bank</button>
+        <button class="seg" data-k="ewallet">Dompet digital</button>
+        <button class="seg" data-k="cash">Tunai</button>
+      </div>
+      <div id="provChips" class="chips"></div>
+      <input id="accProvider" maxlength="40" placeholder="Nama bank/dompet (atau ketik sendiri)">
+      <input id="accName" maxlength="40" placeholder="Label, mis. Tabungan utama">
+      <div class="two">
+        <input id="accLast4" inputmode="numeric" maxlength="4" placeholder="4 digit terakhir (opsional)" autocomplete="off">
+        <input id="accOpen" type="number" step="any" inputmode="decimal" placeholder="Saldo awal (Rp)">
+      </div>
+      <button id="btnAccSave">Simpan</button>
+      <p id="accMsg" class="msg"></p>
+    </div>
+  </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <!-- Transfer -->
+  <div id="trSheet" class="sheet" hidden role="dialog" aria-modal="true" aria-label="Transfer antar rekening">
+    <div class="backdrop" data-close="trSheet"></div>
+    <div class="sheet-panel card">
+      <div class="row between"><h3>Transfer antar rekening</h3><button class="iconbtn" data-close="trSheet" aria-label="Tutup"><svg class="i"><use href="#i-x"/></svg></button></div>
+      <div class="maps">
+        <label>Dari<select id="trFrom"></select></label>
+        <label>Ke<select id="trTo"></select></label>
+      </div>
+      <input id="trAmount" class="big" type="number" min="0" step="any" placeholder="0" inputmode="decimal" aria-label="Jumlah transfer (Rp)">
+      <div class="two">
+        <input id="trFee" type="number" min="0" step="any" inputmode="decimal" placeholder="Biaya admin (opsional)">
+        <input id="trDate" type="date" aria-label="Tanggal">
+      </div>
+      <input id="trNote" maxlength="300" placeholder="Catatan (opsional)">
+      <button id="btnTrSave">Transfer</button>
+      <p id="trMsg" class="msg"></p>
+    </div>
+  </div>
+
+  <!-- Impor CSV -->
+  <div id="csvSheet" class="sheet" hidden role="dialog" aria-modal="true" aria-label="Impor mutasi CSV">
+    <div class="backdrop" data-close="csvSheet"></div>
+    <div class="sheet-panel card">
+      <div class="row between"><h3>Impor mutasi CSV</h3><button class="iconbtn" data-close="csvSheet" aria-label="Tutup"><svg class="i"><use href="#i-x"/></svg></button></div>
+      <p class="dim small">Unduh mutasi dari m-banking atau e-wallet dalam format CSV, lalu pilih file. Baris yang sama tidak diimpor dua kali.</p>
+      <select id="csvAcc" aria-label="Rekening tujuan"></select>
+      <button id="btnCsvPick" class="ghost"><svg class="i"><use href="#i-upload"/></svg> Pilih file CSV…</button>
+      <input id="csvFile" type="file" accept=".csv,.txt,text/csv,text/plain" hidden>
+      <div id="csvMap" hidden>
+        <p id="csvInfo" class="dim small"></p>
+        <div id="csvMode" class="seg-group">
+          <button class="seg on" data-md="single">Satu kolom jumlah</button>
+          <button class="seg" data-md="split">Debit &amp; Kredit</button>
+        </div>
+        <div class="maps">
+          <label>Tanggal<select id="csvDate"></select></label>
+          <label>Keterangan<select id="csvDesc"></select></label>
+          <label id="lblAmt">Jumlah<select id="csvAmt"></select></label>
+          <label id="lblDebit" hidden>Debit (keluar)<select id="csvDebit"></select></label>
+          <label id="lblCredit" hidden>Kredit (masuk)<select id="csvCredit"></select></label>
+        </div>
+        <label class="switch"><input id="csvInvert" type="checkbox"><span>Balik tanda (+/−)</span></label>
+        <ul id="csvPreview" class="txlist"></ul>
+      </div>
+      <button id="btnCsvImport" hidden>Impor</button>
+      <p id="csvMsg" class="msg"></p>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
+<script src="lock.js"></script>
+<script src="accounts.js"></script>
+<script src="theme/theme-pack.js"></script>
+<script src="fx.js"></script>
+<script src="theme.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

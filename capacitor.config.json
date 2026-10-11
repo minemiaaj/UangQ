@@ -1,5 +1,7 @@
 {
-  "appId": "com.contoh.catatankeuangan",
-  "appName": "Catatan Keuangan",
-  "webDir": "www"
+  "appId": "com.uangq.app",
+  "appName": "UangQ",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false }
 }
