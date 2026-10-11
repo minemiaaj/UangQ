@@ -1,0 +1,29 @@
+{
+  "name": "catatan-keuangan",
+  "version": "1.0.0",
+  "description": "Aplikasi keuangan lintas platform (Android & Windows) dengan database cloud bersama",
+  "main": "electron/main.js",
+  "author": "Anda",
+  "scripts": {
+    "start": "electron .",
+    "build:exe": "electron-builder --win nsis portable --publish never",
+    "android:add": "cap add android",
+    "android:sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2",
+    "electron": "^32.1.2",
+    "electron-builder": "^25.0.5"
+  },
+  "build": {
+    "appId": "com.contoh.catatankeuangan",
+    "productName": "Catatan Keuangan",
+    "files": ["electron/**", "www/**"],
+    "directories": { "output": "dist" },
+    "win": { "target": ["nsis", "portable"] }
+  }
+}

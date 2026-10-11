@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Catatan Keuangan</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="auth" class="card narrow">
+  <h1>💰 Catatan Keuangan</h1>
+  <p class="muted">Masuk agar data sinkron di Android &amp; Windows.</p>
+  <input id="email" type="email" placeholder="Email" autocomplete="username">
+  <input id="password" type="password" placeholder="Password (min. 6 karakter)" autocomplete="current-password">
+  <div class="row">
+    <button id="btnLogin">Masuk</button>
+    <button id="btnSignup" class="ghost">Daftar</button>
+  </div>
+  <p id="authMsg" class="muted"></p>
+</main>
+
+<main id="app" hidden>
+  <header class="row between">
+    <h1>💰 Catatan Keuangan</h1>
+    <div class="row"><small id="who" class="muted"></small><button id="btnLogout" class="ghost">Keluar</button></div>
+  </header>
+
+  <section class="row">
+    <label>Bulan <input id="month" type="month"></label>
+  </section>
+
+  <section class="grid">
+    <div class="card"><small>Pemasukan</small><h2 id="sumIn" class="income">Rp0</h2></div>
+    <div class="card"><small>Pengeluaran</small><h2 id="sumOut" class="expense">Rp0</h2></div>
+    <div class="card"><small>Saldo</small><h2 id="sumBal">Rp0</h2></div>
+  </section>
+
+  <section class="card">
+    <h3>Tambah transaksi</h3>
+    <div class="grid form">
+      <select id="type"><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option></select>
+      <input id="amount" type="number" min="0" step="any" placeholder="Jumlah (Rp)" inputmode="decimal">
+      <input id="category" list="cats" placeholder="Kategori">
+      <datalist id="cats"><option>Makan</option><option>Transport</option><option>Belanja</option><option>Tagihan</option><option>Gaji</option><option>Lainnya</option></datalist>
+      <input id="date" type="date">
+      <input id="note" placeholder="Catatan (opsional)">
+      <button id="btnAdd">Tambah</button>
+    </div>
+    <p id="msg" class="muted"></p>
+  </section>
+
+  <section class="card">
+    <h3>Riwayat</h3>
+    <ul id="list"></ul>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
